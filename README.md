@@ -4,7 +4,7 @@ A minimal, production-ready Next.js application with pre-integrated libraries an
 
 ## Features
 
-- **Next.js 13+** – Modern App Router with TypeScript support
+- **Next.js 15+** – Modern App Router with TypeScript support
 - **Tailwind CSS** – Utility-first CSS framework for rapid UI development
 - **TypeScript** – Type-safe development experience
 - **PostCSS** – CSS processing pipeline for Tailwind compilation

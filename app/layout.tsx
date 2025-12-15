@@ -1,7 +1,6 @@
-import type { Metadata } from 'next';
 import '../styles/globals.css';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'App',
   description: 'Next.js App',
 };
