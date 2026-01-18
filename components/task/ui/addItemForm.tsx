@@ -20,7 +20,6 @@ export const AddItemForm = ({
     async (_prevState: unknown, formData: FormData) => {
       const label = formData.get("label") as string;
 
-      // Trigger optimistic update before the action
       if (label?.trim()) {
         onOptimisticAdd?.(label.trim());
       }

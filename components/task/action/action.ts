@@ -1,6 +1,6 @@
 "use server";
 
-import { addItem, editItem } from "@/app/data";
+import { addItem, editItem } from "@/components/task/data";
 import { revalidateTag } from "next/cache";
 
 type Item = {
@@ -20,13 +20,7 @@ export async function addItemAction(formData: FormData) {
 
   await addItem(label.trim());
 
-  // Revalidate the shared cache tag - invalidates both items and stats
   revalidateTag("items-data");
-
-  // Verify both are updated together
-  // const [newItems, newStats] = await Promise.all([getItems(), getStats()]);
-  // console.log("New items list:", newItems);
-  // console.log("New stats:", newStats);
 }
 
 export async function editItemAction(id: string, label: string) {
@@ -36,12 +30,9 @@ export async function editItemAction(id: string, label: string) {
 
   await editItem(id, label.trim());
 
-  // Revalidate the shared cache tag - invalidates both items and stats
   revalidateTag("items-data");
 }
 
 export async function selectItemAction(item: Item) {
-  // console.log("Item selected on server:", item);
   await new Promise((res) => setTimeout(res, 1000));
-  // console.log("Selected item executed");
 }

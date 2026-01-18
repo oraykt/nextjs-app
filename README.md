@@ -1,97 +1,253 @@
-# Next.js App Base Structure
+# Task Module – Advanced Next.js App Router Patterns
 
-A minimal, production-ready Next.js application with pre-integrated libraries and best practices.
+This module demonstrates **production-grade data flow patterns** using **Next.js App Router**, focusing on:
 
-## Features
+- Server Components
+- Server Actions
+- Cache ownership & invalidation
+- Parallel data fetching
+- Optimistic UI with rollback
+- Accessibility-aware client components
 
-- **Next.js 15+** – Modern App Router with TypeScript support
-- **Tailwind CSS** – Utility-first CSS framework for rapid UI development
-- **TypeScript** – Type-safe development experience
-- **PostCSS** – CSS processing pipeline for Tailwind compilation
+The implementation intentionally avoids legacy or anti-patterns (API routes, client refetching, global state).
 
-## Project Structure
+---
+
+## 📁 Folder Structure
 
 ```
-├── app/                  # Next.js App Router directory
-│   ├── layout.tsx       # Root layout component
-│   ├── page.tsx         # Home page
-│   └── about/
-│       └── page.tsx     # About page
-├── components/          # Reusable React components
-├── lib/                 # Utility functions and helpers
-├── public/              # Static assets
-├── styles/
-│   └── globals.css      # Global styles with Tailwind directives
-├── next.config.js       # Next.js configuration
-├── tailwind.config.js   # Tailwind CSS configuration
-├── tsconfig.json        # TypeScript configuration
-└── package.json         # Project dependencies
+components/
+└─ task/
+   ├─ action/
+   │  └─ action.ts            # Server Actions (mutations + revalidation)
+   ├─ ui/
+   │  ├─ AddItemForm.tsx      # Client mutation trigger (optimistic)
+   │  └─ SearchableList.tsx   # Client UI (search, keyboard, accessibility)
+   ├─ data.ts                 # Server-side data source + cache
+app/
+└─ task/
+   └─ page.tsx                # Server Component (parallel fetch)
 ```
 
-## Getting Started
+---
 
-### Prerequisites
+## 🧠 Architectural Principles
 
-- Node.js 16+ and npm/yarn/pnpm
+- **Server is the source of truth**
+- **Client state is ephemeral**
+- **Next.js owns caching**
+- **Mutations invalidate cache, not UI**
+- **Derived state is never stored**
+- **Explicit rollback over implicit magic**
 
-### Installation
+---
 
-```bash
-npm install
+## 🗄️ Server Data Layer
+
+**`components/task/data.ts`**
+
+### Responsibilities
+
+- Simulate a backend data source
+- Register data with Next.js cache
+- Ensure consistency across multiple consumers
+
+### Key Patterns
+
+- `unstable_cache` for cache ownership
+- Shared cache tags for atomic invalidation
+- Snapshot safety (no in-place mutation leaks)
+
+```ts
+export const getItems = unstable_cache(fetchItems, ["items:list"], {
+  tags: ["items-data"],
+});
+
+export const getStats = unstable_cache(fetchStats, ["items:stats"], {
+  tags: ["items-data"],
+});
 ```
 
-### Development Server
+### Why this matters
 
-Run the development server:
+- Cache invalidation only works if Next.js owns the cache
+- Shared tags ensure **items and stats never desync**
+- Returning new references (`[...]`) avoids stale snapshots
 
-```bash
-npm run dev
+---
+
+## 🔄 Server Actions
+
+**`components/task/action/action.ts`**
+
+### Responsibilities
+
+- Perform mutations on the server
+- Trigger cache invalidation
+- Replace API routes
+
+```ts
+export async function addItemAction(label: string) {
+  await addItem(label);
+  revalidateTag("items-data");
+}
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+### Key Rules
 
-### Build for Production
+- No optimistic logic on the server
+- No client secrets
+- Cache revalidation drives UI updates
 
-```bash
-npm run build
-npm start
+---
+
+## 📄 Server Component (Entry Point)
+
+**`app/task/page.tsx`**
+
+### Responsibilities
+
+- Fetch all required data on the server
+- Run fetches **in parallel**
+- Pass snapshots to client components
+
+```ts
+const [list, stats] = await Promise.all([getItems(), getStats()]);
 ```
 
-## Configuration
+### Why this works
 
-### Tailwind CSS
+- No fetch waterfalls
+- No client data fetching
+- Revalidation automatically refreshes UI
 
-Tailwind is pre-configured in `tailwind.config.js`. Customize theme colors, fonts, and other settings as needed.
+---
 
-### TypeScript
+## 🧩 Client UI Components
 
-TypeScript configuration is in `tsconfig.json`. Adjust compiler options for your project requirements.
+### 🔍 Searchable List
 
-### Next.js
+**`components/task/ui/SearchableList.tsx`**
 
-Update `next.config.js` for custom Next.js settings, environment variables, and build optimizations.
+#### Features
 
-## Scripts
+- Search with debounce
+- Keyboard navigation (↑ ↓ Enter)
+- ARIA roles (`listbox`, `option`)
+- Optimistic selection handling
+- Modal-driven item creation
 
-- `npm run dev` – Start development server
-- `npm run build` – Create optimized production build
-- `npm start` – Run production server
-- `npm run lint` – Run ESLint (if configured)
+#### Key Decisions
 
-## Adding Dependencies
+- Only `searchTerm` stored in state
+- Derived data via `useMemo`
+- No `useEffect` for fetching
+- Transitions handled with `useTransition`
 
-Install additional packages as needed:
+---
 
-```bash
-npm install <package-name>
+### ➕ Add Item Form
+
+**`components/task/ui/AddItemForm.tsx`**
+
+#### Responsibilities
+
+- Trigger server mutation
+- Handle optimistic UI
+- Disable UI while pending
+- Close modal on success
+
+```tsx
+startTransition(async () => {
+  await addItemAction(label);
+});
 ```
 
-## Learn More
+---
 
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-- [React Documentation](https://react.dev)
+## ⚡ Optimistic UI + Rollback
 
-## License
+### Pattern Used
 
-MIT
+- Optimistic item added immediately on client
+- Server Action runs in background
+- Rollback on failure
+- Cache revalidation reconciles success
+
+```ts
+setItems((prev) => [...prev, optimisticItem]);
+
+try {
+  await addItemAction(label);
+} catch {
+  rollback();
+}
+```
+
+### Why not `useOptimistic`
+
+- Explicit rollback control
+- Safer under concurrency
+- Easier debugging
+- Better failure handling
+
+---
+
+## 🧠 Cache Invalidation Mental Model
+
+> **Mutations do not update UI — cache invalidation does**
+
+Key rules:
+
+- `revalidateTag` only works for cached data
+- `unstable_cache` snapshots return values
+- Never mutate cached data in place
+- Always return new references
+
+---
+
+## ❌ Patterns Explicitly Avoided
+
+| Pattern              | Reason                  |
+| -------------------- | ----------------------- |
+| API routes           | Unnecessary boilerplate |
+| `useEffect` fetching | App Router anti-pattern |
+| `router.refresh()`   | Hides cache bugs        |
+| Global state         | Breaks server authority |
+| `cache: "no-store"`  | Disables scalability    |
+
+---
+
+## ♿ Accessibility
+
+- Keyboard navigation supported
+- ARIA roles applied
+- Focus-safe interactions
+- Predictable behavior
+
+---
+
+## 🎯 What This Module Demonstrates
+
+✅ App Router mastery
+✅ Server-first architecture
+✅ Cache ownership & invalidation
+✅ Parallel fetching
+✅ Optimistic UI with rollback
+✅ Production-grade UX
+
+---
+
+## 🚀 Possible Extensions
+
+- Streaming + Suspense
+- Auth-scoped caching
+- Optimistic reconciliation with server IDs
+- Race-condition stress testing
+
+---
+
+**This task module is intentionally minimal but architecturally complete.**
+It reflects how modern Next.js applications should be built in production.
+
+---

@@ -1,7 +1,6 @@
 "use client";
 
 import React, {
-  ChangeEvent,
   useEffect,
   useMemo,
   useOptimistic,
@@ -33,16 +32,15 @@ export const SearchableList = ({
   onSelect,
   debounceMs = 300,
 }: Props) => {
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [inputValue, setInputValue] = useState<string>("");
-  const [activeIndex, setActiveIndex] = useState<number>(-1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [inputValue, setInputValue] = useState("");
+  const [activeIndex, setActiveIndex] = useState(-1);
   const [isPending, startTransition] = useTransition();
-  const [addItemMode, setAddItemMode] = useState<boolean>(false);
+  const [addItemMode, setAddItemMode] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [editingValue, setEditingValue] = useState<string>("");
+  const [editingValue, setEditingValue] = useState("");
 
-  // Optimistic state for items and stats
   const [optimisticItems, setOptimisticItems] = useOptimistic(
     list,
     (
@@ -88,13 +86,10 @@ export const SearchableList = ({
     const idToEdit = editingItemId;
     const labelToEdit = editingValue.trim();
 
-    // Clear editing state immediately
     setEditingItemId(null);
     setEditingValue("");
 
-    // Wrap optimistic update and action in startTransition
     startTransition(async () => {
-      // Optimistic update
       setOptimisticItems({
         type: "edit",
         id: idToEdit,
