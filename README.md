@@ -12,20 +12,23 @@ A minimal, production-ready Next.js application with pre-integrated libraries an
 ## Project Structure
 
 ```
-├── app/                  # Next.js App Router directory
-│   ├── layout.tsx       # Root layout component
-│   ├── page.tsx         # Home page
-│   └── about/
-│       └── page.tsx     # About page
-├── components/          # Reusable React components
-├── lib/                 # Utility functions and helpers
-├── public/              # Static assets
-├── styles/
-│   └── globals.css      # Global styles with Tailwind directives
-├── next.config.js       # Next.js configuration
-├── tailwind.config.js   # Tailwind CSS configuration
-├── tsconfig.json        # TypeScript configuration
-└── package.json         # Project dependencies
+├── src/                 # Source directory
+│   ├── app/            # Next.js App Router directory
+│   │   ├── layout.tsx  # Root layout component
+│   │   ├── page.tsx    # Home page
+│   │   └── about/
+│   │       └── page.tsx # About page
+│   ├── components/     # Reusable React components
+│   │   └── about/
+│   │       └── about-me.tsx
+│   ├── lib/            # Utility functions and helpers
+│   └── styles/
+│       └── globals.css # Global styles with Tailwind directives
+├── public/             # Static assets
+├── next.config.js      # Next.js configuration
+├── tailwind.config.js  # Tailwind CSS configuration
+├── tsconfig.json       # TypeScript configuration
+└── package.json        # Project dependencies
 ```
 
 ## Getting Started
